@@ -33,51 +33,68 @@ export default function Chatbot({ apiUrl }) {
     });
   }, [messages, loading]);
 
+  // 🧠 Universal API fetch handler
+  const fetchBotReply = async (message) => {
+    try {
+      const res = await fetch(apiUrl, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        // send both keys for compatibility
+        body: JSON.stringify({ message, question: message }),
+      });
+
+      // Handle CORS / invalid response
+      if (!res.ok) {
+        console.warn("⚠️ API returned non-OK status:", res.status);
+        return "Sorry, there was a problem contacting the server 😢";
+      }
+
+      const text = await res.text();
+      let data;
+
+      // Try to parse JSON safely
+      try {
+        data = JSON.parse(text);
+      } catch {
+        console.warn("⚠️ Non-JSON response:", text);
+        return text || "Received non-JSON response from server 🤔";
+      }
+
+      // Handle different backend response formats
+      const reply =
+        data.answer ||
+        data.output ||
+        data.response ||
+        data.reply ||
+        data.message ||
+        (Array.isArray(data) && data[0]?.answer) ||
+        JSON.stringify(data);
+
+      return reply || "Hmm, I didn’t quite get that 🤔";
+    } catch (err) {
+      console.error("🚨 Chatbot API Error:", err);
+      if (err.message.includes("CORS")) {
+        return "CORS error: Please enable CORS on your API server 🙏";
+      }
+      return "Sorry, there was a network or server issue 😢";
+    }
+  };
+
   // Handle send message
   const handleSend = async () => {
-    if (!input.trim()) return;
+    if (!input.trim() || loading) return;
     const userMessage = { sender: "user", text: input };
     setMessages((prev) => [...prev, userMessage]);
     const userInput = input;
     setInput("");
     setLoading(true);
 
-    try {
-      const res = await fetch(apiUrl, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ question: userInput }),
-      });
+    const botReply = await fetchBotReply(userInput);
 
-      let data = await res.json();
-      if (typeof data.output === "string" && data.output.startsWith("```json")) {
-        const jsonStr = data.output.replace(/```json|```/g, "").trim();
-        data = JSON.parse(jsonStr);
-      } else if (data.output) {
-        try {
-          data = JSON.parse(data.output);
-        } catch {
-          data = data.output;
-        }
-      }
-
-      const botReply =
-        typeof data === "object"
-          ? data.response || JSON.stringify(data)
-          : data || "Hmm, I didn’t quite get that 🤔";
-
-      setTimeout(() => {
-        setMessages((prev) => [...prev, { sender: "bot", text: botReply }]);
-        setLoading(false);
-      }, 800);
-    } catch (err) {
-      console.error("Chatbot API Error:", err);
-      setMessages((prev) => [
-        ...prev,
-        { sender: "bot", text: "Sorry, there was an error connecting 😢" },
-      ]);
+    setTimeout(() => {
+      setMessages((prev) => [...prev, { sender: "bot", text: botReply }]);
       setLoading(false);
-    }
+    }, 600);
   };
 
   const handleKeyDown = (e) => {
@@ -223,6 +240,33 @@ export default function Chatbot({ apiUrl }) {
         .animate-slideUp {
           animation: slideUp 0.4s ease-out;
         }
+        .typing {
+        display: flex;
+        align-items: center;
+        gap: 4px;
+        }
+
+        .typing span {
+        width: 6px;
+        height: 6px;
+        background: #fff;
+        border-radius: 50%;
+        animation: bounce 1.3s infinite;
+        }
+
+        .typing span:nth-child(2) {
+        animation-delay: 0.2s;
+        }
+
+        .typing span:nth-child(3) {
+        animation-delay: 0.4s;
+        }
+
+        @keyframes bounce {
+        0%, 80%, 100% { transform: scale(0); }
+        40% { transform: scale(1); }
+        }
+
       `}</style>
     </>
   );
