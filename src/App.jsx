@@ -4,8 +4,8 @@ function App() {
   return (
     <div>
       <Chatbot
-        apiUrlEnglish="https://n8n.srv1012449.hstgr.cloud/webhook/english"
-        apiUrlMalayalam="https://n8n.srv1012449.hstgr.cloud/webhook/malayalam"
+        apiUrlEnglish={import.meta.env.VITE_API_URL_ENGLISH}
+        apiUrlMalayalam={import.meta.env.VITE_API_URL_MALAYALAM}
       />
 
     </div>
