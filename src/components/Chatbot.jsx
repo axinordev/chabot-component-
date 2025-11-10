@@ -10,6 +10,8 @@ export default function Chatbot({ apiUrl, apiUrlEnglish, apiUrlMalayalam }) {
   const [loading, setLoading] = useState(false);
   const [language, setLanguage] = useState("english");
   const chatRef = useRef(null);
+  const [showDropdown, setShowDropdown] = useState(false);
+
 
   // Detect if multiple APIs are provided
   const hasMultipleAPIs = apiUrlEnglish && apiUrlMalayalam;
@@ -111,24 +113,24 @@ export default function Chatbot({ apiUrl, apiUrlEnglish, apiUrlMalayalam }) {
   return (
     <>
       {/* Floating Chat Button */}
-      {!isOpen && (
         <button
-          onClick={() => setIsOpen(true)}
-          className="fixed bottom-3 md:right-9 right-4 rounded-full bot-glow-tight cursor-pointer hover:scale-110 transition-transform duration-300 z-[9998]"
+        onClick={() => setIsOpen(!isOpen)}
+        className={`fixed bottom-3 md:right-9 right-4 rounded-full bot-glow-tight cursor-pointer transition-transform duration-300 z-[10000]
+            ${isOpen ? "scale-90 opacity-90 hover:scale-100" : "hover:scale-110"}
+        `}
         >
-          <img
+        <img
             src={botAvatar}
             alt="Bot"
-            className="w-24 h-24 md:w-28 md:h-28 rounded-full"
-          />
+            className="w-20 h-20 md:w-24 md:h-24 rounded-full"
+        />
         </button>
-      )}
 
       {/* Chat Window */}
       {isOpen && (
         <div
           className="
-            fixed inset-0 sm:bottom-[125px] sm:right-9 md:right-12 sm:inset-auto
+            fixed inset-0 sm:bottom-[110px] sm:right-9 md:right-12 sm:inset-auto
             w-full h-[100dvh] sm:h-[420px] sm:w-72 md:w-96 ios-safe-height
             bg-white rounded-none sm:rounded-[15px]
             shadow-[-8px_13px_30px_-2px_rgba(59,_130,_246,_0.5)]
@@ -165,15 +167,66 @@ export default function Chatbot({ apiUrl, apiUrlEnglish, apiUrlMalayalam }) {
 
             {/* Language Selector (only if both APIs exist) */}
             {hasMultipleAPIs && (
-              <select
-                value={language}
-                onChange={(e) => setLanguage(e.target.value)}
-                className="ml-2 bg-white/80 text-[#0043FF] text-xs font-semibold px-1 py-1 rounded-md outline-none cursor-pointer"
-              >
-                <option value="english">English</option>
-                <option value="malayalam">Malayalam</option>
-              </select>
+            <div className="relative">
+                {/* Dropdown Button */}
+                <button
+                onClick={() => setShowDropdown(!showDropdown)}
+                className="
+                    bg-white/90 text-[#0043FF] text-xs font-semibold 
+                    px-3 py-1.5 rounded-lg flex items-center gap-2 
+                    border border-[#ffffff50] shadow-sm
+                    hover:bg-white transition-all duration-200
+                "
+                >
+                {language === "english" ? "English" : "Malayalam "}
+                <svg
+                    className={`w-3 h-3 transition-transform duration-200 ${
+                    showDropdown ? "rotate-180" : ""
+                    }`}
+                    xmlns="http://www.w3.org/2000/svg"
+                    fill="none"
+                    viewBox="0 0 24 24"
+                    stroke="currentColor"
+                >
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                </svg>
+                </button>
+
+                {/* Dropdown Menu */}
+                {showDropdown && (
+                <div
+                    className="
+                    absolute right-0 mt-2 w-32 bg-white rounded-lg shadow-lg 
+                    border border-[#e3e8ff] overflow-hidden z-[99999] animate-fadeIn
+                    "
+                >
+                    <button
+                    onClick={() => {
+                        setLanguage("english");
+                        setShowDropdown(false);
+                    }}
+                    className={`block w-full text-left px-4 py-2 text-xs font-medium text-[#0043FF] hover:bg-[#0043FF]/10 transition ${
+                        language === "english" ? "bg-[#0043FF]/10" : ""
+                    }`}
+                    >
+                    English
+                    </button>
+                    <button
+                    onClick={() => {
+                        setLanguage("malayalam");
+                        setShowDropdown(false);
+                    }}
+                    className={`block w-full text-left px-4 py-2 text-xs font-medium text-[#0043FF] hover:bg-[#0043FF]/10 transition ${
+                        language === "malayalam" ? "bg-[#0043FF]/10" : ""
+                    }`}
+                    >
+                    Malayalam
+                    </button>
+                </div>
+                )}
+            </div>
             )}
+
 
             <button
               onClick={() => {
@@ -335,6 +388,14 @@ export default function Chatbot({ apiUrl, apiUrlEnglish, apiUrlMalayalam }) {
         display: inline-block;
         transition: transform 0.3s ease-in-out;
         }
+        @keyframes fadeIn {
+        from { opacity: 0; transform: translateY(-5px); }
+        to { opacity: 1; transform: translateY(0); }
+        }
+        .animate-fadeIn {
+        animation: fadeIn 0.2s ease-out;
+        }
+
 
       `}</style>
     </>
