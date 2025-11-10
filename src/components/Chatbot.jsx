@@ -3,12 +3,23 @@ import botAvatar from "../assets/bot-avatar.png";
 import bot from "../assets/bot-white.png";
 import sendIcon from "../assets/send-icon.svg";
 
-export default function Chatbot({ apiUrl }) {
+export default function Chatbot({ apiUrl, apiUrlEnglish, apiUrlMalayalam }) {
   const [isOpen, setIsOpen] = useState(false);
   const [messages, setMessages] = useState([]);
   const [input, setInput] = useState("");
   const [loading, setLoading] = useState(false);
+  const [language, setLanguage] = useState("english");
   const chatRef = useRef(null);
+
+  // Detect if multiple APIs are provided
+  const hasMultipleAPIs = apiUrlEnglish && apiUrlMalayalam;
+
+  // Pick active API based on selected language
+  const activeApi = hasMultipleAPIs
+    ? language === "english"
+      ? apiUrlEnglish
+      : apiUrlMalayalam
+    : apiUrl;
 
   // Initial bot messages
   useEffect(() => {
@@ -36,14 +47,12 @@ export default function Chatbot({ apiUrl }) {
   // 🧠 Universal API fetch handler
   const fetchBotReply = async (message) => {
     try {
-      const res = await fetch(apiUrl, {
+      const res = await fetch(activeApi, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        // send both keys for compatibility
         body: JSON.stringify({ message, question: message }),
       });
 
-      // Handle CORS / invalid response
       if (!res.ok) {
         console.warn("⚠️ API returned non-OK status:", res.status);
         return "Sorry, there was a problem contacting the server 😢";
@@ -52,7 +61,6 @@ export default function Chatbot({ apiUrl }) {
       const text = await res.text();
       let data;
 
-      // Try to parse JSON safely
       try {
         data = JSON.parse(text);
       } catch {
@@ -60,7 +68,6 @@ export default function Chatbot({ apiUrl }) {
         return text || "Received non-JSON response from server 🤔";
       }
 
-      // Handle different backend response formats
       const reply =
         data.answer ||
         data.output ||
@@ -107,7 +114,7 @@ export default function Chatbot({ apiUrl }) {
       {!isOpen && (
         <button
           onClick={() => setIsOpen(true)}
-          className="fixed bottom-3 md:right-9 right-4 rounded-full cursor-pointer hover:scale-110 transition-transform duration-300 z-[9998]"
+          className="fixed bottom-3 md:right-9 right-4 rounded-full bot-glow-tight cursor-pointer hover:scale-110 transition-transform duration-300 z-[9998]"
         >
           <img
             src={botAvatar}
@@ -122,7 +129,7 @@ export default function Chatbot({ apiUrl }) {
         <div
           className="
             fixed inset-0 sm:bottom-[125px] sm:right-9 md:right-12 sm:inset-auto
-            w-full h-[100dvh] sm:h-[400px] sm:w-72 md:w-80 ios-safe-height
+            w-full h-[100dvh] sm:h-[420px] sm:w-72 md:w-96 ios-safe-height
             bg-white rounded-none sm:rounded-[15px]
             shadow-[-8px_13px_30px_-2px_rgba(59,_130,_246,_0.5)]
             flex flex-col transition-all duration-300 animate-slideUp
@@ -155,6 +162,19 @@ export default function Chatbot({ apiUrl }) {
                 </div>
               </div>
             </div>
+
+            {/* Language Selector (only if both APIs exist) */}
+            {hasMultipleAPIs && (
+              <select
+                value={language}
+                onChange={(e) => setLanguage(e.target.value)}
+                className="ml-2 bg-white/80 text-[#0043FF] text-xs font-semibold px-1 py-1 rounded-md outline-none cursor-pointer"
+              >
+                <option value="english">English</option>
+                <option value="malayalam">Malayalam</option>
+              </select>
+            )}
+
             <button
               onClick={() => {
                 setIsOpen(false);
@@ -241,30 +261,79 @@ export default function Chatbot({ apiUrl }) {
           animation: slideUp 0.4s ease-out;
         }
         .typing {
-        display: flex;
-        align-items: center;
-        gap: 4px;
+          display: flex;
+          align-items: center;
+          gap: 4px;
         }
-
         .typing span {
-        width: 6px;
-        height: 6px;
-        background: #fff;
-        border-radius: 50%;
-        animation: bounce 1.3s infinite;
+          width: 6px;
+          height: 6px;
+          background: #fff;
+          border-radius: 50%;
+          animation: bounce 1.3s infinite;
         }
-
         .typing span:nth-child(2) {
-        animation-delay: 0.2s;
+          animation-delay: 0.2s;
         }
-
         .typing span:nth-child(3) {
-        animation-delay: 0.4s;
+          animation-delay: 0.4s;
+        }
+        @keyframes bounce {
+          0%, 80%, 100% { transform: scale(0); }
+          40% { transform: scale(1); }
+        }
+        /* --- iOS Chrome/Safari fix --- */
+        @supports (-webkit-touch-callout: none) {
+          html, body {
+            height: -webkit-fill-available;
+          }
+
+          .ios-safe-height {
+            height: -webkit-fill-available !important;
+            max-height: 100vh;
+            overflow: hidden;
+          }
+
+          input, textarea, select {
+            font-size: 16px !important; /* prevents zoom-in on focus */
+          }
+
+          /* Prevent chat from jumping when keyboard opens */
+          .fixed {
+            position: fixed;
+            bottom: 0;
+            top: auto;
+          }
+        }
+        /* Hide scrollbar */
+        .scrollbar-hide::-webkit-scrollbar {
+        display: none;
+        }
+        .scrollbar-hide {
+        -ms-overflow-style: none;
+        scrollbar-width: none;
+        }
+        @keyframes pulseShadow {
+        0% {
+            transform: rotate(0deg) scale(1);
+            filter: drop-shadow(0 0 2px rgba(160, 90, 255, 0.3));
+        }
+        50% {
+            transform: rotate(5deg) scale(1.03);
+            filter: drop-shadow(0 0 6px rgba(170, 100, 255, 0.8));
+        }
+        100% {
+            transform: rotate(0deg) scale(1);
+            filter: drop-shadow(0 0 2px rgba(160, 90, 255, 0.3));
+        }
         }
 
-        @keyframes bounce {
-        0%, 80%, 100% { transform: scale(0); }
-        40% { transform: scale(1); }
+        .bot-glow-tight {
+        animation: pulseShadow 3s infinite ease-in-out;
+        border-radius: 65%;
+        background: transparent;
+        display: inline-block;
+        transition: transform 0.3s ease-in-out;
         }
 
       `}</style>
