@@ -1,0 +1,229 @@
+import React, { useState, useEffect, useRef } from "react";
+import botAvatar from "../assets/bot-avatar.png";
+import bot from "../assets/bot-white.png";
+import sendIcon from "../assets/send-icon.svg";
+
+export default function Chatbot({ apiUrl }) {
+  const [isOpen, setIsOpen] = useState(false);
+  const [messages, setMessages] = useState([]);
+  const [input, setInput] = useState("");
+  const [loading, setLoading] = useState(false);
+  const chatRef = useRef(null);
+
+  // Initial bot messages
+  useEffect(() => {
+    if (isOpen && messages.length === 0) {
+      setTimeout(() => {
+        setMessages([
+          { sender: "bot", text: "Hello 👋" },
+          { sender: "bot", text: "How can I help you today?" },
+        ]);
+      }, 400);
+    }
+
+    document.body.style.overflow = isOpen ? "hidden" : "auto";
+    return () => (document.body.style.overflow = "auto");
+  }, [isOpen]);
+
+  // Auto-scroll on new message
+  useEffect(() => {
+    chatRef.current?.scrollTo({
+      top: chatRef.current.scrollHeight,
+      behavior: "smooth",
+    });
+  }, [messages, loading]);
+
+  // Handle send message
+  const handleSend = async () => {
+    if (!input.trim()) return;
+    const userMessage = { sender: "user", text: input };
+    setMessages((prev) => [...prev, userMessage]);
+    const userInput = input;
+    setInput("");
+    setLoading(true);
+
+    try {
+      const res = await fetch(apiUrl, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ question: userInput }),
+      });
+
+      let data = await res.json();
+      if (typeof data.output === "string" && data.output.startsWith("```json")) {
+        const jsonStr = data.output.replace(/```json|```/g, "").trim();
+        data = JSON.parse(jsonStr);
+      } else if (data.output) {
+        try {
+          data = JSON.parse(data.output);
+        } catch {
+          data = data.output;
+        }
+      }
+
+      const botReply =
+        typeof data === "object"
+          ? data.response || JSON.stringify(data)
+          : data || "Hmm, I didn’t quite get that 🤔";
+
+      setTimeout(() => {
+        setMessages((prev) => [...prev, { sender: "bot", text: botReply }]);
+        setLoading(false);
+      }, 800);
+    } catch (err) {
+      console.error("Chatbot API Error:", err);
+      setMessages((prev) => [
+        ...prev,
+        { sender: "bot", text: "Sorry, there was an error connecting 😢" },
+      ]);
+      setLoading(false);
+    }
+  };
+
+  const handleKeyDown = (e) => {
+    if (e.key === "Enter") handleSend();
+  };
+
+  return (
+    <>
+      {/* Floating Chat Button */}
+      {!isOpen && (
+        <button
+          onClick={() => setIsOpen(true)}
+          className="fixed bottom-3 md:right-9 right-4 rounded-full cursor-pointer hover:scale-110 transition-transform duration-300 z-[9998]"
+        >
+          <img
+            src={botAvatar}
+            alt="Bot"
+            className="w-24 h-24 md:w-28 md:h-28 rounded-full"
+          />
+        </button>
+      )}
+
+      {/* Chat Window */}
+      {isOpen && (
+        <div
+          className="
+            fixed inset-0 sm:bottom-[125px] sm:right-9 md:right-12 sm:inset-auto
+            w-full h-[100dvh] sm:h-[400px] sm:w-72 md:w-80 ios-safe-height
+            bg-white rounded-none sm:rounded-[15px]
+            shadow-[-8px_13px_30px_-2px_rgba(59,_130,_246,_0.5)]
+            flex flex-col transition-all duration-300 animate-slideUp
+            z-[9999]
+          "
+        >
+          {/* Header */}
+          <div
+            className="
+              bg-[#0043FF] flex items-center justify-between px-5 py-3 text-white 
+              sm:rounded-t-[15px] shadow-[inset_0px_-12px_22px_-15px_rgba(0,_0,_0,_0.7)]
+              sticky top-0 z-10
+            "
+          >
+            <div className="flex items-center gap-4">
+              <img src={bot} alt="Bot" className="w-10 h-10 rounded-full" />
+              <div className="flex flex-col gap-1">
+                <h3 className="text-sm md:text-base font-bold tracking-wide">
+                  AI Chatbot
+                </h3>
+                <div className="flex items-center gap-2">
+                  <span
+                    className={`inline-block w-2 h-2 rounded-full ${
+                      loading ? "bg-yellow-400" : "bg-green-400"
+                    }`}
+                  ></span>
+                  <p className="text-xs text-white tracking-wide">
+                    {loading ? "Typing..." : "Online"}
+                  </p>
+                </div>
+              </div>
+            </div>
+            <button
+              onClick={() => {
+                setIsOpen(false);
+                setMessages([]);
+              }}
+              className="text-xl font-bold hover:opacity-80 transition"
+            >
+              ✕
+            </button>
+          </div>
+
+          {/* Chat Messages */}
+          <div
+            ref={chatRef}
+            className="
+              flex-1 p-4 overflow-y-auto bg-white space-y-3 scrollbar-hide 
+              mb-[70px] sm:mb-0
+            "
+          >
+            {messages.map((msg, i) => (
+              <div
+                key={i}
+                className={`flex ${
+                  msg.sender === "user" ? "justify-end" : "justify-start"
+                }`}
+              >
+                <div
+                  className={`text-sm px-4 py-2 rounded-2xl max-w-[75%] leading-relaxed shadow-sm ${
+                    msg.sender === "user"
+                      ? "bg-transparent text-black border border-[#1C3CFF38] rounded-br-none shadow-[inset_5px_0px_17px_-13px_rgba(0,_0,_0,_0.35)]"
+                      : "bg-[#0043FF] text-white rounded-bl-none shadow-[inset_-7px_0px_17px_-5px_rgba(0,_0,_0,_0.35)]"
+                  }`}
+                >
+                  {msg.text}
+                </div>
+              </div>
+            ))}
+
+            {loading && (
+              <div className="flex justify-start">
+                <div className="bg-[#0043FF] text-white px-4 py-2 rounded-2xl rounded-bl-none flex items-center shadow-sm">
+                  <div className="typing">
+                    <span></span>
+                    <span></span>
+                    <span></span>
+                  </div>
+                </div>
+              </div>
+            )}
+          </div>
+
+          {/* Input Field */}
+          <div className="px-4 py-3 bg-white sm:rounded-b-3xl fixed bottom-0 left-0 right-0 sm:static">
+            <div className="flex items-center bg-white border border-[#194EFF40] rounded-[15px] px-4 py-2 shadow-sm">
+              <input
+                type="text"
+                placeholder="Type your message here..."
+                className="flex-1 text-sm text-black placeholder-black/80 bg-transparent outline-none"
+                value={input}
+                onChange={(e) => setInput(e.target.value)}
+                onKeyDown={handleKeyDown}
+              />
+              <button
+                onClick={handleSend}
+                disabled={loading}
+                className={`ml-2 flex items-center justify-center w-8 h-8 rounded-full transition-transform duration-300 ${
+                  loading ? "opacity-50 cursor-not-allowed" : "hover:scale-110"
+                }`}
+              >
+                <img src={sendIcon} alt="Send" className="w-7 h-7 object-contain" />
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Animation */}
+      <style>{`
+        @keyframes slideUp {
+          from { transform: translateY(100%); opacity: 0; }
+          to { transform: translateY(0); opacity: 1; }
+        }
+        .animate-slideUp {
+          animation: slideUp 0.4s ease-out;
+        }
+      `}</style>
+    </>
+  );
+}
