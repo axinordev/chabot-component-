@@ -46,13 +46,12 @@ export default function Chatbot({ apiUrl, apiUrlEnglish, apiUrlMalayalam }) {
     });
   }, [messages, loading]);
 
-  // 🧠 Universal API fetch handler
   const fetchBotReply = async (message) => {
     try {
       const res = await fetch(activeApi, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ message, question: message }),
+        body: JSON.stringify({ message }), // ✅ FIXED
       });
 
       if (!res.ok) {
@@ -60,34 +59,27 @@ export default function Chatbot({ apiUrl, apiUrlEnglish, apiUrlMalayalam }) {
         return "Sorry, there was a problem contacting the server 😢";
       }
 
-      const text = await res.text();
-      let data;
+      const data = await res.json(); // ✅ parse directly to JSON
 
-      try {
-        data = JSON.parse(text);
-      } catch {
-        console.warn("⚠️ Non-JSON response:", text);
-        return text || "Received non-JSON response from server 🤔";
+      let reply = "";
+      if (Array.isArray(data) && data.length > 0 && data[0].answer) {
+        reply = data[0].answer;
+      } else if (data.output) {
+        reply = data.output;
+      } else {
+        reply = data.reply || data.message || JSON.stringify(data);
       }
-
-      const reply =
-        data.answer ||
-        data.output ||
-        data.response ||
-        data.reply ||
-        data.message ||
-        (Array.isArray(data) && data[0]?.answer) ||
-        JSON.stringify(data);
 
       return reply || "Hmm, I didn’t quite get that 🤔";
     } catch (err) {
       console.error("🚨 Chatbot API Error:", err);
       if (err.message.includes("CORS")) {
-        return "CORS error: Please enable CORS on your API server 🙏";
+        return "CORS error: Please enable CORS on your API server.";
       }
       return "Sorry, there was a network or server issue 😢";
     }
   };
+
 
   // Handle send message
   const handleSend = async () => {
@@ -115,7 +107,7 @@ export default function Chatbot({ apiUrl, apiUrlEnglish, apiUrlMalayalam }) {
       {/* Floating Chat Button */}
         <button
         onClick={() => setIsOpen(!isOpen)}
-        className={`fixed bottom-3 md:right-9 right-4 rounded-full bot-glow-tight cursor-pointer transition-transform duration-300 z-[10000]
+        className={`fixed bottom-3 md:right-9 right-4 rounded-full bot-glow-tight cursor-pointer transition-transform duration-300 z-[9998]
             ${isOpen ? "scale-90 opacity-90 hover:scale-100" : "hover:scale-110"}
         `}
         >
