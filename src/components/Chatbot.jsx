@@ -12,7 +12,6 @@ export default function Chatbot({ apiUrl, apiUrlEnglish, apiUrlMalayalam }) {
   const chatRef = useRef(null);
   const [showDropdown, setShowDropdown] = useState(false);
 
-
   // Detect if multiple APIs are provided
   const hasMultipleAPIs = apiUrlEnglish && apiUrlMalayalam;
 
@@ -27,16 +26,23 @@ export default function Chatbot({ apiUrl, apiUrlEnglish, apiUrlMalayalam }) {
   useEffect(() => {
     if (isOpen && messages.length === 0) {
       setTimeout(() => {
-        setMessages([
-          { sender: "bot", text: "Hello 👋" },
-          { sender: "bot", text: "How can I help you today?" },
-        ]);
+        if (language === "malayalam") {
+          setMessages([
+            { sender: "bot", text: "ഹലോ 👋" },
+            { sender: "bot", text: "ഇന്ന് ഞാൻ നിങ്ങളെ എങ്ങനെ സഹായിക്കാം?" },
+          ]);
+        } else {
+          setMessages([
+            { sender: "bot", text: "Hello 👋" },
+            { sender: "bot", text: "How can I help you today?" },
+          ]);
+        }
       }, 400);
     }
 
     document.body.style.overflow = isOpen ? "hidden" : "auto";
     return () => (document.body.style.overflow = "auto");
-  }, [isOpen]);
+  }, [isOpen, language]);
 
   // Auto-scroll on new message
   useEffect(() => {
@@ -51,15 +57,17 @@ export default function Chatbot({ apiUrl, apiUrlEnglish, apiUrlMalayalam }) {
       const res = await fetch(activeApi, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ message }), // ✅ FIXED
+        body: JSON.stringify({ message }),
       });
 
       if (!res.ok) {
         console.warn("⚠️ API returned non-OK status:", res.status);
-        return "Sorry, there was a problem contacting the server 😢";
+        return language === "malayalam"
+          ? "ക്ഷമിക്കുക, സെർവറുമായി ബന്ധപ്പെടുന്നതിനിടെ പ്രശ്നം ഉണ്ടായി 😢"
+          : "Sorry, there was a problem contacting the server 😢";
       }
 
-      const data = await res.json(); // ✅ parse directly to JSON
+      const data = await res.json();
 
       let reply = "";
       if (Array.isArray(data) && data.length > 0 && data[0].answer) {
@@ -70,16 +78,21 @@ export default function Chatbot({ apiUrl, apiUrlEnglish, apiUrlMalayalam }) {
         reply = data.reply || data.message || JSON.stringify(data);
       }
 
-      return reply || "Hmm, I didn’t quite get that 🤔";
+      return reply || (language === "malayalam"
+        ? "ഹും, അത് എനിക്ക് വ്യക്തമായില്ല 🤔"
+        : "Hmm, I didn’t quite get that 🤔");
     } catch (err) {
       console.error("🚨 Chatbot API Error:", err);
       if (err.message.includes("CORS")) {
-        return "CORS error: Please enable CORS on your API server.";
+        return language === "malayalam"
+          ? "CORS പിശക്: നിങ്ങളുടെ API സെർവറിൽ CORS പ്രവർത്തനക്ഷമമാക്കുക."
+          : "CORS error: Please enable CORS on your API server.";
       }
-      return "Sorry, there was a network or server issue 😢";
+      return language === "malayalam"
+        ? "ക്ഷമിക്കുക, നെറ്റ്‌വർക്ക് അല്ലെങ്കിൽ സെർവർ പ്രശ്നം ഉണ്ടായി 😢"
+        : "Sorry, there was a network or server issue 😢";
     }
   };
-
 
   // Handle send message
   const handleSend = async () => {
@@ -105,18 +118,18 @@ export default function Chatbot({ apiUrl, apiUrlEnglish, apiUrlMalayalam }) {
   return (
     <>
       {/* Floating Chat Button */}
-        <button
+      <button
         onClick={() => setIsOpen(!isOpen)}
         className={`fixed bottom-3 md:right-9 right-4 rounded-full bot-glow-tight cursor-pointer transition-transform duration-300 z-[9998]
             ${isOpen ? "scale-90 opacity-90 hover:scale-100" : "hover:scale-110"}
         `}
-        >
+      >
         <img
-            src={botAvatar}
-            alt="Bot"
-            className="w-20 h-20 md:w-24 md:h-24 rounded-full"
+          src={botAvatar}
+          alt="Bot"
+          className="w-20 h-20 md:w-24 md:h-24 rounded-full"
         />
-        </button>
+      </button>
 
       {/* Chat Window */}
       {isOpen && (
@@ -151,7 +164,13 @@ export default function Chatbot({ apiUrl, apiUrlEnglish, apiUrlMalayalam }) {
                     }`}
                   ></span>
                   <p className="text-xs text-white tracking-wide">
-                    {loading ? "Typing..." : "Online"}
+                    {loading
+                      ? language === "malayalam"
+                        ? "ടൈപ്പിംഗ്..."
+                        : "Typing..."
+                      : language === "malayalam"
+                      ? "ഓൺലൈൻ"
+                      : "Online"}
                   </p>
                 </div>
               </div>
@@ -159,66 +178,70 @@ export default function Chatbot({ apiUrl, apiUrlEnglish, apiUrlMalayalam }) {
 
             {/* Language Selector (only if both APIs exist) */}
             {hasMultipleAPIs && (
-            <div className="relative">
+              <div className="relative">
                 {/* Dropdown Button */}
                 <button
-                onClick={() => setShowDropdown(!showDropdown)}
-                className="
+                  onClick={() => setShowDropdown(!showDropdown)}
+                  className="
                     bg-white/90 text-[#0043FF] text-xs font-semibold 
                     px-3 py-1.5 rounded-lg flex items-center gap-2 
                     border border-[#ffffff50] shadow-sm
                     hover:bg-white transition-all duration-200
-                "
+                  "
                 >
-                {language === "english" ? "English" : "Malayalam "}
-                <svg
+                  {language === "english" ? "English" : "Malayalam "}
+                  <svg
                     className={`w-3 h-3 transition-transform duration-200 ${
-                    showDropdown ? "rotate-180" : ""
+                      showDropdown ? "rotate-180" : ""
                     }`}
                     xmlns="http://www.w3.org/2000/svg"
                     fill="none"
                     viewBox="0 0 24 24"
                     stroke="currentColor"
-                >
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-                </svg>
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M19 9l-7 7-7-7"
+                    />
+                  </svg>
                 </button>
 
                 {/* Dropdown Menu */}
                 {showDropdown && (
-                <div
+                  <div
                     className="
                     absolute right-0 mt-2 w-32 bg-white rounded-lg shadow-lg 
                     border border-[#e3e8ff] overflow-hidden z-[99999] animate-fadeIn
                     "
-                >
+                  >
                     <button
-                    onClick={() => {
+                      onClick={() => {
                         setLanguage("english");
                         setShowDropdown(false);
-                    }}
-                    className={`block w-full text-left px-4 py-2 text-xs font-medium text-[#0043FF] hover:bg-[#0043FF]/10 transition ${
+                      }}
+                      className={`block w-full text-left px-4 py-2 text-xs font-medium text-[#0043FF] hover:bg-[#0043FF]/10 transition ${
                         language === "english" ? "bg-[#0043FF]/10" : ""
-                    }`}
+                      }`}
                     >
-                    English
+                      English
                     </button>
                     <button
-                    onClick={() => {
+                      onClick={() => {
                         setLanguage("malayalam");
                         setShowDropdown(false);
-                    }}
-                    className={`block w-full text-left px-4 py-2 text-xs font-medium text-[#0043FF] hover:bg-[#0043FF]/10 transition ${
+                      }}
+                      className={`block w-full text-left px-4 py-2 text-xs font-medium text-[#0043FF] hover:bg-[#0043FF]/10 transition ${
                         language === "malayalam" ? "bg-[#0043FF]/10" : ""
-                    }`}
+                      }`}
                     >
-                    Malayalam
+                      Malayalam
                     </button>
-                </div>
+                  </div>
                 )}
-            </div>
+              </div>
             )}
-
 
             <button
               onClick={() => {
@@ -276,7 +299,11 @@ export default function Chatbot({ apiUrl, apiUrlEnglish, apiUrlMalayalam }) {
             <div className="flex items-center bg-white border border-[#194EFF40] rounded-[15px] px-4 py-2 shadow-sm">
               <input
                 type="text"
-                placeholder="Type your message here..."
+                placeholder={
+                  language === "malayalam"
+                    ? "നിങ്ങളുടെ സന്ദേശം ഇവിടെ ടൈപ്പ് ചെയ്യൂ..."
+                    : "Type your message here..."
+                }
                 className="flex-1 text-sm text-black placeholder-black/80 bg-transparent outline-none"
                 value={input}
                 onChange={(e) => setInput(e.target.value)}
@@ -289,14 +316,18 @@ export default function Chatbot({ apiUrl, apiUrlEnglish, apiUrlMalayalam }) {
                   loading ? "opacity-50 cursor-not-allowed" : "hover:scale-110"
                 }`}
               >
-                <img src={sendIcon} alt="Send" className="w-7 h-7 object-contain" />
+                <img
+                  src={sendIcon}
+                  alt="Send"
+                  className="w-7 h-7 object-contain"
+                />
               </button>
             </div>
           </div>
         </div>
       )}
 
-      {/* Animation */}
+      {/* Animation Styles */}
       <style>{`
         @keyframes slideUp {
           from { transform: translateY(100%); opacity: 0; }
@@ -327,68 +358,45 @@ export default function Chatbot({ apiUrl, apiUrlEnglish, apiUrlMalayalam }) {
           0%, 80%, 100% { transform: scale(0); }
           40% { transform: scale(1); }
         }
-        /* --- iOS Chrome/Safari fix --- */
         @supports (-webkit-touch-callout: none) {
           html, body {
             height: -webkit-fill-available;
           }
-
           .ios-safe-height {
             height: -webkit-fill-available !important;
             max-height: 100vh;
             overflow: hidden;
           }
-
           input, textarea, select {
-            font-size: 16px !important; /* prevents zoom-in on focus */
+            font-size: 16px !important;
           }
-
-          /* Prevent chat from jumping when keyboard opens */
           .fixed {
             position: fixed;
             bottom: 0;
             top: auto;
           }
         }
-        /* Hide scrollbar */
-        .scrollbar-hide::-webkit-scrollbar {
-        display: none;
-        }
-        .scrollbar-hide {
-        -ms-overflow-style: none;
-        scrollbar-width: none;
-        }
+        .scrollbar-hide::-webkit-scrollbar { display: none; }
+        .scrollbar-hide { -ms-overflow-style: none; scrollbar-width: none; }
         @keyframes pulseShadow {
-        0% {
-            transform: rotate(0deg) scale(1);
-            filter: drop-shadow(0 0 2px rgba(160, 90, 255, 0.3));
+          0% { transform: rotate(0deg) scale(1); filter: drop-shadow(0 0 2px rgba(160,90,255,0.3)); }
+          50% { transform: rotate(5deg) scale(1.03); filter: drop-shadow(0 0 6px rgba(170,100,255,0.8)); }
+          100% { transform: rotate(0deg) scale(1); filter: drop-shadow(0 0 2px rgba(160,90,255,0.3)); }
         }
-        50% {
-            transform: rotate(5deg) scale(1.03);
-            filter: drop-shadow(0 0 6px rgba(170, 100, 255, 0.8));
-        }
-        100% {
-            transform: rotate(0deg) scale(1);
-            filter: drop-shadow(0 0 2px rgba(160, 90, 255, 0.3));
-        }
-        }
-
         .bot-glow-tight {
-        animation: pulseShadow 3s infinite ease-in-out;
-        border-radius: 65%;
-        background: transparent;
-        display: inline-block;
-        transition: transform 0.3s ease-in-out;
+          animation: pulseShadow 3s infinite ease-in-out;
+          border-radius: 65%;
+          background: transparent;
+          display: inline-block;
+          transition: transform 0.3s ease-in-out;
         }
         @keyframes fadeIn {
-        from { opacity: 0; transform: translateY(-5px); }
-        to { opacity: 1; transform: translateY(0); }
+          from { opacity: 0; transform: translateY(-5px); }
+          to { opacity: 1; transform: translateY(0); }
         }
         .animate-fadeIn {
-        animation: fadeIn 0.2s ease-out;
+          animation: fadeIn 0.2s ease-out;
         }
-
-
       `}</style>
     </>
   );
