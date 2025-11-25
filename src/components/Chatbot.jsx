@@ -12,6 +12,8 @@ export default function Chatbot({ apiUrl, apiUrlEnglish, apiUrlMalayalam }) {
   const chatRef = useRef(null);
   const [showDropdown, setShowDropdown] = useState(false);
 
+  
+
   // Detect if multiple APIs are provided
   const hasMultipleAPIs = apiUrlEnglish && apiUrlMalayalam;
 
@@ -51,6 +53,22 @@ export default function Chatbot({ apiUrl, apiUrlEnglish, apiUrlMalayalam }) {
       behavior: "smooth",
     });
   }, [messages, loading]);
+
+
+// Auto-format all bot replies
+function autoFormat(text) {
+  if (!text) return "";
+
+  return text
+    // Bold "Key: Value"
+    .replace(/([A-Za-z0-9 _-]+):/g, "<b>$1:</b>")
+    // Replace new lines with HTML line break
+    .replace(/\n/g, "<br/>")
+    // Convert long dashes into section divider
+    .replace(/-{3,}/g, "<hr/>");
+}
+
+
 
   const fetchBotReply = async (message) => {
     try {
@@ -106,7 +124,15 @@ export default function Chatbot({ apiUrl, apiUrlEnglish, apiUrlMalayalam }) {
     const botReply = await fetchBotReply(userInput);
 
     setTimeout(() => {
-      setMessages((prev) => [...prev, { sender: "bot", text: botReply }]);
+//       setMessages((prev) => [
+//   ...prev,
+//   { sender: "bot", text: formatBotReply(botReply), formatted: true }
+// ]);
+setMessages((prev) => [
+  ...prev,
+  { sender: "bot", text: autoFormat(botReply) }
+]);
+
       setLoading(false);
     }, 600);
   };
@@ -275,8 +301,12 @@ export default function Chatbot({ apiUrl, apiUrlEnglish, apiUrlMalayalam }) {
                       ? "bg-transparent text-black border border-[#1C3CFF38] rounded-br-none shadow-[inset_5px_0px_17px_-13px_rgba(0,_0,_0,_0.35)]"
                       : "bg-[#0043FF] text-white rounded-bl-none shadow-[inset_-7px_0px_17px_-5px_rgba(0,_0,_0,_0.35)]"
                   }`}
+                    {...(msg.sender === "bot"
+    ? { dangerouslySetInnerHTML: { __html: msg.text } }
+    : {})}
                 >
-                  {msg.text}
+                  {msg.sender === "user" ? msg.text : null}
+
                 </div>
               </div>
             ))}
